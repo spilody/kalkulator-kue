@@ -9,7 +9,6 @@ import { collection, getDocs } from "firebase/firestore";
 const DashboardPage = () => {
   const [totalIngredients, setTotalIngredients] = useState(0); // Total bahan
   const [totalRecipes, setTotalRecipes] = useState(0); // Total resep
-  const [criticalStock, setCriticalStock] = useState(0); // Stok kritis
 
   // Fungsi untuk logout
   const handleLogout = async () => {
@@ -33,12 +32,6 @@ const DashboardPage = () => {
         // Ambil total resep
         const recipesSnapshot = await getDocs(collection(db, "recipes"));
         setTotalRecipes(recipesSnapshot.docs.length);
-
-        // Hitung stok kritis (misalnya, stok < 5)
-        const criticalStockCount = ingredientsSnapshot.docs.filter(
-          (doc) => doc.data().stock < 5
-        ).length;
-        setCriticalStock(criticalStockCount);
       } catch (error) {
         console.error("Gagal mengambil data: ", error);
       }
@@ -76,7 +69,7 @@ const DashboardPage = () => {
 
       {/* Main Content */}
       <main className="flex-1 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           {/* Card 1: Total Bahan */}
           <Link
             to="/ingredients-table"
@@ -93,15 +86,6 @@ const DashboardPage = () => {
           >
             <span className="text-4xl font-bold text-green-500">{totalRecipes}</span>
             <p className="text-gray-700 text-center">Total Resep Dibuat</p>
-          </Link>
-
-          {/* Card 3: Stok Kritis */}
-          <Link
-            to="/critical-stock-detail"
-            className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center justify-center space-y-4 cursor-pointer hover:bg-gray-50 transition duration-300"
-          >
-            <span className="text-4xl font-bold text-red-500">{criticalStock}</span>
-            <p className="text-gray-700 text-center">Stok Bahan Kritis</p>
           </Link>
         </div>
       </main>
