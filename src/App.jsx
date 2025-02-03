@@ -10,6 +10,8 @@ import ProtectedRoute from "./components/ProtectedRoute"; // Import ProtectedRou
 import PublicRoute from "./components/PublicRoute"; // Import PublicRoute
 import IngredientsTable from "./pages/IngredientsTable"; // Import IngredientsTable
 import RecipesTable from "./pages/RecipesTable"; // Import RecipesTable
+import RecipeDetail from "./pages/RecipeDetail"; // Import RecipeDetail
+import CriticalStockDetail from "./pages/CriticalStockDetail"; // Import CriticalStockDetail
 
 function App() {
   return (
@@ -71,6 +73,22 @@ function App() {
           element={
             <ProtectedRoute>
               <RecipesTable />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recipe-detail/:id"
+          element={
+            <ProtectedRoute>
+              <RecipeDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/critical-stock-detail"
+          element={
+            <ProtectedRoute>
+              <CriticalStockDetail />
             </ProtectedRoute>
           }
         />

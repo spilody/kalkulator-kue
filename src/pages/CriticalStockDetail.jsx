@@ -4,21 +4,23 @@ import { db } from "../firebase/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { Link } from "react-router-dom";
 
-const IngredientsTable = () => {
-  const [ingredients, setIngredients] = useState([]);
+const CriticalStockDetail = () => {
+  const [criticalStock, setCriticalStock] = useState([]);
 
-  // Ambil data bahan dari Firestore
+  // Ambil data bahan dengan stok kritis dari Firestore
   useEffect(() => {
-    const fetchIngredients = async () => {
+    const fetchCriticalStock = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "ingredients"));
-        const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setIngredients(data);
+        const data = querySnapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((item) => item.stock < 5); // Filter bahan dengan stok < 5
+        setCriticalStock(data);
       } catch (error) {
-        console.error("Gagal mengambil data bahan: ", error);
+        console.error("Gagal mengambil data stok kritis: ", error);
       }
     };
-    fetchIngredients();
+    fetchCriticalStock();
   }, []);
 
   return (
@@ -32,18 +34,20 @@ const IngredientsTable = () => {
           Kembali ke Dashboard
         </Link>
 
-        <h2 className="text-2xl font-bold text-center">Daftar Bahan</h2>
+        <h2 className="text-2xl font-bold text-center">Stok Bahan Kritis</h2>
+
+        {/* Tabel Stok Kritis */}
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-200">
               <th className="p-3 text-left">Nama Bahan</th>
               <th className="p-3 text-left">Harga/kg</th>
-              <th className="p-3 text-left">Berat</th>
+              <th className="p-3 text-left">Stok</th>
               <th className="p-3 text-left">Satuan</th>
             </tr>
           </thead>
           <tbody>
-            {ingredients.map((item) => (
+            {criticalStock.map((item) => (
               <tr key={item.id} className="border-b">
                 <td className="p-3">{item.name}</td>
                 <td className="p-3">Rp{item.price}</td>
@@ -58,4 +62,4 @@ const IngredientsTable = () => {
   );
 };
 
-export default IngredientsTable;
+export default CriticalStockDetail;

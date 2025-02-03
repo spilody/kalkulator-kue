@@ -9,7 +9,6 @@ const RecipesTable = () => {
 
   // Ambil data resep dari Firestore
   useEffect(() => {
-    
     const fetchRecipes = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "recipes"));
@@ -43,8 +42,15 @@ const RecipesTable = () => {
           </thead>
           <tbody>
             {recipes.map((item) => (
-              <tr key={item.id} className="border-b">
-                <td className="p-3">{item.name}</td>
+              <tr
+                key={item.id}
+                className="border-b cursor-pointer hover:bg-gray-50 transition duration-300"
+              >
+                <td className="p-3">
+                  <Link to={`/recipe-detail/${item.id}`} className="text-blue-500 hover:underline">
+                    {item.name}
+                  </Link>
+                </td>
                 <td className="p-3">Rp{item.totalCost}</td>
               </tr>
             ))}

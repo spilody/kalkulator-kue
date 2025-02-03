@@ -96,10 +96,13 @@ const DashboardPage = () => {
           </Link>
 
           {/* Card 3: Stok Kritis */}
-          <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center justify-center space-y-4">
+          <Link
+            to="/critical-stock-detail"
+            className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center justify-center space-y-4 cursor-pointer hover:bg-gray-50 transition duration-300"
+          >
             <span className="text-4xl font-bold text-red-500">{criticalStock}</span>
             <p className="text-gray-700 text-center">Stok Bahan Kritis</p>
-          </div>
+          </Link>
         </div>
       </main>
 
