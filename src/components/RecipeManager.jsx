@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-unused-vars
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase/firebaseConfig";
-import { collection, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 const RecipeManager = () => {
@@ -14,7 +14,6 @@ const RecipeManager = () => {
   const [availableUnits, setAvailableUnits] = useState([]); // Daftar satuan yang valid
   const [recipeIngredients, setRecipeIngredients] = useState([]); // Daftar bahan dalam resep
   const [editingIndex, setEditingIndex] = useState(null); // Index bahan yang sedang diedit
-  const [recipes, setRecipes] = useState([]); // Daftar semua resep
   const navigate = useNavigate();
 
   // Ambil data bahan dari Firestore
@@ -24,16 +23,8 @@ const RecipeManager = () => {
     setIngredients(data);
   };
 
-  // Ambil data resep dari Firestore
-  const fetchRecipes = async () => {
-    const querySnapshot = await getDocs(collection(db, "recipes"));
-    const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    setRecipes(data);
-  };
-
   useEffect(() => {
     fetchIngredients();
-    fetchRecipes();
   }, []);
 
   // Update satuan yang valid ketika bahan dipilih
@@ -103,15 +94,18 @@ const RecipeManager = () => {
       alert("Harap isi semua field untuk menambahkan bahan!");
       return;
     }
+
     const ingredient = ingredients.find((item) => item.name === selectedIngredient);
     const pricePerUnit = calculatePricePerUnit(ingredient, selectedUnit);
     const cost = pricePerUnit * parseFloat(quantity);
+
     const newIngredient = {
       name: selectedIngredient,
       quantity: parseFloat(quantity),
       unit: selectedUnit,
       cost: cost.toFixed(2),
     };
+
     if (editingIndex !== null) {
       // Edit bahan yang sudah ada
       const updatedIngredients = [...recipeIngredients];
@@ -122,16 +116,40 @@ const RecipeManager = () => {
       // Tambahkan bahan baru
       setRecipeIngredients([...recipeIngredients, newIngredient]);
     }
+
     // Hitung ulang total modal
     const totalCost = recipeIngredients.reduce(
       (sum, item) => sum + parseFloat(item.cost),
       0
     );
     setRecipeCost(totalCost + cost);
+
     // Reset form
     setSelectedIngredient("");
     setQuantity("");
     setSelectedUnit("");
+  };
+
+  // Fungsi untuk mengedit bahan
+  const handleEdit = (index) => {
+    const ingredientToEdit = recipeIngredients[index];
+    setSelectedIngredient(ingredientToEdit.name);
+    setQuantity(ingredientToEdit.quantity.toString());
+    setSelectedUnit(ingredientToEdit.unit);
+    setEditingIndex(index);
+  };
+
+  // Fungsi untuk menghapus bahan
+  const handleDelete = (index) => {
+    const updatedIngredients = recipeIngredients.filter((_, i) => i !== index);
+    setRecipeIngredients(updatedIngredients);
+
+    // Hitung ulang total modal
+    const totalCost = updatedIngredients.reduce(
+      (sum, item) => sum + parseFloat(item.cost),
+      0
+    );
+    setRecipeCost(totalCost);
   };
 
   // Fungsi untuk menyimpan resep ke Firestore
@@ -145,6 +163,7 @@ const RecipeManager = () => {
       alert("Resep harus memiliki minimal satu bahan!");
       return;
     }
+
     try {
       await addDoc(collection(db, "recipes"), {
         name: recipeName,
@@ -155,27 +174,14 @@ const RecipeManager = () => {
       setRecipeName("");
       setRecipeIngredients([]);
       setRecipeCost(0);
-      fetchRecipes(); // Refresh daftar resep
     } catch (error) {
       alert("Gagal menambahkan resep: " + error.message);
     }
   };
 
-  // Fungsi untuk menghapus resep
-  const handleDeleteRecipe = async (id) => {
-    try {
-      const recipeRef = doc(db, "recipes", id);
-      await deleteDoc(recipeRef);
-      alert("Resep berhasil dihapus!");
-      fetchRecipes(); // Refresh daftar resep
-    } catch (error) {
-      alert("Gagal menghapus resep: " + error.message);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl space-y-6">
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg space-y-6">
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
@@ -185,8 +191,6 @@ const RecipeManager = () => {
         </button>
 
         <h2 className="text-2xl font-bold text-center">Manajemen Resep</h2>
-
-        {/* Form Tambah Resep */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Nama Resep */}
           <input
@@ -229,7 +233,7 @@ const RecipeManager = () => {
           {/* Jumlah Pakai */}
           <input
             type="number"
-            placeholder="Jumlah Pakai"
+            placeholder={`Jumlah Pakai (${selectedUnit || "Satuan"})`}
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
@@ -246,48 +250,35 @@ const RecipeManager = () => {
 
           {/* Daftar Bahan dalam Resep */}
           {recipeIngredients.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold">Bahan dalam Resep:</h3>
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-200">
-                    <th className="p-3 text-left">Nama Bahan</th>
-                    <th className="p-3 text-left">Jumlah</th>
-                    <th className="p-3 text-left">Satuan</th>
-                    <th className="p-3 text-left">Biaya</th>
-                    <th className="p-3 text-left">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recipeIngredients.map((ingredient, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="p-3">{ingredient.name}</td>
-                      <td className="p-3">{ingredient.quantity}</td>
-                      <td className="p-3">{ingredient.unit}</td>
-                      <td className="p-3">Rp{ingredient.cost}</td>
-                      <td className="p-3">
-                        <button
-                          onClick={() => handleEdit(index)}
-                          className="bg-yellow-500 text-white px-2 py-1 rounded-lg hover:bg-yellow-600 transition duration-300 mr-2"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(index)}
-                          className="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 transition duration-300"
-                        >
-                          Hapus
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold">Bahan dalam Resep:</h3>
+              <ul className="space-y-2">
+                {recipeIngredients.map((ingredient, index) => (
+                  <li key={index} className="flex justify-between bg-gray-100 p-2 rounded-lg">
+                    <span>{`${ingredient.quantity} ${ingredient.unit} ${ingredient.name}`}</span>
+                    <span>Rp{ingredient.cost}</span>
+                    <div className="space-x-2">
+                      <button
+                        onClick={() => handleEdit(index)}
+                        className="bg-yellow-500 text-white px-2 py-1 rounded-lg hover:bg-yellow-600 transition duration-300"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(index)}
+                        className="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 transition duration-300"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
           {/* Total Modal */}
-          <p className="text-lg font-semibold">Total Modal: Rp{recipeCost.toFixed(2)}</p>
+          <p className="text-center font-bold">Total Modal: Rp{recipeCost.toFixed(2)}</p>
 
           {/* Tombol Simpan Resep */}
           <button
@@ -297,36 +288,6 @@ const RecipeManager = () => {
             Simpan Resep
           </button>
         </form>
-
-        {/* Daftar Semua Resep */}
-        <div>
-          <h3 className="text-xl font-bold text-center">Daftar Resep</h3>
-          <table className="w-full border-collapse mt-4">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="p-3 text-left">Nama Resep</th>
-                <th className="p-3 text-left">Total Biaya</th>
-                <th className="p-3 text-left">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recipes.map((recipe) => (
-                <tr key={recipe.id} className="border-b">
-                  <td className="p-3">{recipe.name}</td>
-                  <td className="p-3">Rp{recipe.totalCost}</td>
-                  <td className="p-3">
-                    <button
-                      onClick={() => handleDeleteRecipe(recipe.id)}
-                      className="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 transition duration-300"
-                    >
-                      Hapus
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );
